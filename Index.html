@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Train Driver Simulator</title>
+
+<style>
+* { box-sizing:border-box; }
+
+body {
+    margin:0;
+    overflow:hidden;
+    background:#101820;
+    color:white;
+    font-family:Arial,sans-serif;
+}
+
+#game {
+    width:100vw;
+    height:100dvh;
+    position:relative;
+    overflow:hidden;
+}
+
+#view {
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    background:linear-gradient(#65b9e9 0%,#b4e2f5 55%,#79a94c 56%,#477b35);
+}
+
+#sun {
+    position:absolute;
+    width:45px;
+    height:45px;
+    background:#ffe49a;
+    border-radius:50%;
+    top:9%;
+    right:16%;
+}
+
+.mountain {
+    position:absolute;
+    bottom:35%;
+    width:45%;
+    height:28%;
+    background:#638d70;
+    clip-path:polygon(0 100%,45% 0,100% 100%);
+}
+
+.one { left:-5%; }
+.two { right:-5%; background:#789a76; }
+
+#ground {
+    position:absolute;
+    bottom:0;
+    height:43%;
+    width:100%;
+    background:linear-gradient(#638e3e,#365f2d);
+}
+
+.track-bed {
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:31%;
+    background:#756b5b;
+    clip-path:polygon(43% 0,57% 0,100% 100%,0 100%);
+}
+
+.rail-line {
+    position:absolute;
+    bottom:0;
+    height:32%;
+    width:5px;
+    background:#c4c6c5;
+}
+
+.rail-left {
+    left:43%;
+    transform:rotate(12deg);
+}
+
+.rail-right {
+    right:43%;
+    transform:rotate(-12deg);
+}
+
+#sleepers,#trees {
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    pointer-events:none;
+}
+
+.tree {
+    position:absolute;
+    bottom:34%;
+    width:35px;
+    height:90px;
+    transform-origin:bottom center;
+}
+
+.tree-trunk {
+    position:absolute;
+    bottom:0;
+    left:14px;
+    width:7px;
+    height:45%;
+    background:#65432b;
+}
+
+.tree-leaves {
+    position:absolute;
+    bottom:30%;
+    width:35px;
+    height:55px;
+    background:#245b30;
+    clip-path:polygon(50% 0,100% 75%,75% 75%,95% 100%,5% 100%,25% 75%,0 75%);
+}
+
+.pole {
+    position:absolute;
+    bottom:35%;
+    width:4px;
+    height:100px;
+    background:#555;
+}
+
+.pole:after {
+    content:"";
+    position:absolute;
+    top:12px;
+    left:-15px;
+    width:34px;
+    height:4px;
+    background:#555;
+}
+
+#cab {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    border:13px solid #18232c;
+    border-bottom:45px solid #18232c;
+    border-radius:18px;
+    z-index:10;
+}
+
+#dashboard {
+    position:absolute;
+    z-index:20;
+    left:22px;
+    bottom:58px;
+    width:205px;
+    padding:10px;
+    background:#17232de8;
+    border:1px solid #758693;
+    border-radius:12px;
+}
+
+#speed {
+    font-size:35px;
+    color:#ffce65;
+    font-weight:bold;
+}
+
+small {
+    color:#c2d0d9;
+    font-size:10px;
+}
+
+.stats {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:7px;
+    font-size:11px;
+}
+
+.stat {
+    background:#293a47;
+    padding:7px;
+    border-radius:6px;
+}
+
+.stat b {
+    display:block;
+    margin-top:4px;
+}
+
+#controls {
+    position:absolute;
+    z-index:20;
+    right:20px;
+    bottom:55px;
+    width:230px;
+    background:#17232deb;
+    border:1px solid #758693;
+    border-radius:12px;
+    padding:9px;
+}
+
+#controls h3 {
+    font-size:12px;
+    text-align:center;
+    margin:0 0 7px;
+}
+
+.lever {
+    background:#2a3b49;
+    padding:6px 8px;
+    border-radius:7px;
+    margin-bottom:6px;
+}
+
+.lever label {
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    font-weight:bold;
+}
+
+.lever output { color:#ffd16c; }
+
+input[type=range] {
+    display:block;
+    width:100%;
+    height:23px;
+    margin:2px 0;
+    accent-color:#f0ae36;
+}
+
+.labels {
+    display:flex;
+    justify-content:space-between;
+    color:#c4d1dc;
+    font-size:9px;
+}
+
+.buttons {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:5px;
+}
+
+button {
+    border:0;
+    border-radius:6px;
+    padding:9px 4px;
+    color:white;
+    font-size:10px;
+    font-weight:bold;
+    background:#277ab5;
+}
+
+button:active { filter:brightness(1.3); }
+
+.green { background:#16834d; }
+.red { background:#b63838; }
+.yellow { background:#a47722; }
+.purple { background:#6551a0; }
+.gray { background:#536575; }
+
+#topInfo {
+    position:absolute;
+    z-index:20;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:7px 15px;
+    border-radius:20px;
+    background:#14222bbd;
+    font-size:11px;
+    white-space:nowrap;
+}
+
+#message {
+    position:absolute;
+    z-index:25;
+    top:55px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#17232de8;
+    padding:8px 12px;
+    border-radius:7px;
+    font-size:11px;
+    text-align:center;
+    max-width:80%;
+}
+
+#station {
+    position:absolute;
+    inset:0;
+    z-index:30;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:#0009;
+}
+
+#station.show { display:flex; }
+
+.station-card {
+    width:min(75%,430px);
+    background:#e8e7df;
+    color:#1c2932;
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+    border:4px solid #384a55;
+}
+
+.station-card svg {
+    width:100%;
+    background:#a9d9ed;
+    border-radius:7px;
+}
+
+.station-card h2 { font-size:18px; }
+.station-card p { font-size:12px; }
+
+@media(orientation:portrait) {
+    #game:before {
+        content:"PUTAR HP KE POSISI LANDSCAPE UNTUK BERMAIN";
+        position:absolute;
+        z-index:100;
+        inset:0;
+        background:#101820;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+        padding:25px;
+        font-size:18px;
+        font-weight:bold;
+    }
+}
+
+@media(max-height:430px) {
+    #dashboard {
+        bottom:53px;
+        width:175px;
+        left:17px;
+        padding:7px;
+    }
+
+    #controls {
+        bottom:50px;
+        width:205px;
+        right:16px;
+        padding:7px;
+    }
+
+    .lever {
+        padding:4px 7px;
+        margin-bottom:4px;
+    }
+
+    input[type=range] { height:19px; }
+    button { padding:7px 3px; }
+    #speed { font-size:29px; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <div id="view">
+        <div id="sun"></div>
+        <div class="mountain one"></div>
+        <div class="mountain two"></div>
+        <div id="ground"></div>
+        <div class="track-bed"></div>
+        <div class="rail-line rail-left"></div>
+        <div class="rail-line rail-right"></div>
+        <div id="sleepers"></div>
+        <div id="trees"></div>
+    </div>
+
+    <div id="cab"></div>
+
+    <div id="topInfo">TRAIN DRIVER SIMULATOR</div>
+    <div id="message">Nyalakan mesin untuk memulai perjalanan.</div>
+
+    <div id="dashboard">
+        <small>KECEPATAN KERETA</small>
+        <div><span id="speed">0.0</span> <small>KM/JAM</small></div>
+
+        <div class="stats">
+            <div class="stat">MESIN<b id="engineStatus">OFF</b></div>
+            <div class="stat">TRANSMISI<b id="direction">NETRAL</b></div>
+            <div class="stat">JARAK<b id="distance">0 m</b></div>
+            <div class="stat">TUJUAN<b id="remaining">1500 m</b></div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <h3>KONTROL MASINIS</h3>
+
+        <div class="lever">
+            <label>TRANSMISI <output id="transmissionValue">N</output></label>
+            <input type="range" id="transmission" min="0" max="2" step="1" value="1">
+            <div class="labels"><span>R</span><span>N</span><span>F</span></div>
+        </div>
+
+        <div class="lever">
+            <label>REM <output id="brakeValue">0%</output></label>
+            <input type="range" id="brake" min="0" max="100" value="0">
+            <div class="labels"><span>LEPAS</span><span>REM PENUH</span></div>
+        </div>
+
+        <div class="lever">
+            <label>GAS <output id="gasValue">0%</output></label>
+            <input type="range" id="gas" min="0" max="100" value="0">
+            <div class="labels"><span>MINIMUM</span><span>MAKSIMUM</span></div>
+        </div>
+
+        <div class="buttons">
+            <button class="green" id="startEngine">NYALAKAN MESIN</button>
+            <button class="red" id="stopEngine">MATIKAN MESIN</button>
+            <button class="yellow" id="hornButton">KLAKSON</button>
+            <button class="purple" id="soundButton">SUARA: ON</button>
+            <button class="gray" id="resetButton" style="grid-column:1/3">RESET PERJALANAN</button>
+        </div>
+    </div>
+
+    <div id="station">
+        <div class="station-card">
+            <svg viewBox="0 0 600 240">
+                <rect width="600" height="240" fill="#9ed7ed"/>
+                <circle cx="510" cy="45" r="24" fill="#ffe49a"/>
+                <rect y="180" width="600" height="60" fill="#668e4b"/>
+                <path d="M55 115 L300 25 L545 115Z" fill="#38515d"/>
+                <rect x="90" y="108" width="420" height="88" fill="#eee9db"/>
+                <rect x="115" y="130" width="370" height="15" fill="#526d7a"/>
+                <rect x="260" y="151" width="80" height="45" fill="#536a78"/>
+                <rect x="140" y="158" width="48" height="30" fill="#9fc9d9"/>
+                <rect x="412" y="158" width="48" height="30" fill="#9fc9d9"/>
+                <rect x="215" y="72" width="170" height="38" rx="5" fill="#e8e4d6"/>
+                <text x="300" y="97" text-anchor="middle" font-size="21" font-weight="bold" fill="#263d4a">STASIUN 01</text>
+            </svg>
+            <h2>STASIUN TUJUAN</h2>
+            <p>Kereta telah tiba di stasiun.</p>
+            <button class="green" id="stationContinue">PERJALANAN BARU</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const state = {
+    engine:false,
+    transmission:1,
+    brake:0,
+    gas:0,
+    speed:0,
+    distance:0,
+    maxDistance:1500,
+    sound:true,
+    arrived:false
+};
+
+const transmission = $("transmission");
+const brake = $("brake");
+const gas = $("gas");
+
+let audio = null;
+let engineOsc = null;
+let engineGain = null;
+let lastTime = 0;
+
+let trees = [];
+let poles = [];
+let sleepers = [];
+
+function message(text) {
+    $("message").textContent = text;
+}
+
+/* AUDIO */
+
+function audioReady() {
+    if (!state.sound) return null;
+
+    try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+
+        if (!audio) audio = new AC();
+        if (audio.state === "suspended") audio.resume();
+
+        return audio;
+    } catch(e) {
+        return null;
+    }
+}
+
+function tone(freq,duration,volume=0.06) {
+    const ctx = audioReady();
+    if (!ctx) return;
+
+    try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.frequency.value = freq;
+        osc.type = "sawtooth";
+
+        gain.gain.setValueAtTime(volume,ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,ctx.currentTime+duration
+        );
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime+duration);
+    } catch(e) {}
+}
+
+function startSound() {
+    const ctx = audioReady();
+    if (!ctx || engineOsc) return;
+
+    try {
+        engineOsc = ctx.createOscillator();
+        engineGain = ctx.createGain();
+
+        engineOsc.type = "sawtooth";
+        engineOsc.frequency.value = 65;
+        engineGain.gain.value = 0.025;
+
+        engineOsc.connect(engineGain);
+        engineGain.connect(ctx.destination);
+        engineOsc.start();
+    } catch(e) {
+        engineOsc = null;
+        engineGain = null;
+    }
+}
+
+function stopSound() {
+    if (!engineOsc) return;
+
+    try {
+        engineOsc.stop();
+        engineOsc.disconnect();
+        engineGain.disconnect();
+    } catch(e) {}
+
+    engineOsc = null;
+    engineGain = null;
+}
+
+function updateSound() {
+    if (!engineOsc || !audio) return;
+
+    engineOsc.frequency.setTargetAtTime(
+        60 + state.gas*1.1 + Math.abs(state.speed)*0.5,
+        audio.currentTime,
+        0.15
+    );
+}
+
+/* TAMPILAN */
+
+function transmissionName() {
+    if (state.transmission === 0) return "MUNDUR";
+    if (state.transmission === 2) return "MAJU";
+    return "NETRAL";
+}
+
+function transmissionLetter() {
+    return ["R","N","F"][state.transmission];
+}
+
+function updateDisplay() {
+    $("speed").textContent = Math.abs(state.speed).toFixed(1);
+
+    $("engineStatus").textContent = state.engine ? "ON" : "OFF";
+    $("engineStatus").style.color =
+        state.engine ? "#6df0a7" : "#ff7777";
+
+    $("direction").textContent = transmissionName();
+
+    $("distance").textContent =
+        Math.floor(state.distance)+" m";
+
+    $("remaining").textContent =
+        Math.ceil(Math.max(0,state.maxDistance-state.distance))+" m";
+
+    $("transmissionValue").textContent = transmissionLetter();
+    $("brakeValue").textContent = state.brake+"%";
+    $("gasValue").textContent = state.gas+"%";
+
+    updateSound();
+}
+
+/* TOMBOL MESIN */
+
+$("startEngine").addEventListener("click",function() {
+    audioReady();
+
+    if (state.engine) {
+        message("Mesin sudah menyala.");
+        return;
+    }
+
+    state.engine = true;
+
+    tone(100,0.2);
+    setTimeout(() => {
+        if (state.engine) tone(180,0.3);
+    },200);
+
+    setTimeout(() => {
+        if (state.engine && state.sound) startSound();
+    },450);
+
+    message("Mesin berhasil dinyalakan.");
+    updateDisplay();
+});
+
+$("stopEngine").addEventListener("click",function() {
+    state.engine = false;
+    state.gas = 0;
+
+    gas.value = 0;
+
+    stopSound();
+
+    message("Mesin dimatikan.");
+    updateDisplay();
+});
+
+/* KLAKSON */
+
+$("hornButton").addEventListener("click",function() {
+    if (!state.engine) {
+        message("Nyalakan mesin terlebih dahulu.");
+        return;
+    }
+
+    const ctx = audioReady();
+    if (!ctx) {
+        message("Suara tidak tersedia.");
+        return;
+    }
+
+    try {
+        [440,550].forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.frequency.value = freq;
+            osc.type = "square";
+            gain.gain.value = 0.035;
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime+0.65);
+        });
+    } catch(e) {}
+
+    message("Klakson dibunyikan.");
+});
+
+/* SUARA */
+
+$("soundButton").addEventListener("click",function() {
+    state.sound = !state.sound;
+
+    $("soundButton").textContent =
+        state.sound ? "SUARA: ON" : "SUARA: OFF";
+
+    if (!state.sound) {
+        stopSound();
+    } else if (state.engine) {
+        audioReady();
+        startSound();
+    }
+
+    message(state.sound ? "Suara aktif." : "Suara mati.");
+});
+
+/* TRANSMISI */
+
+transmission.addEventListener("input",function() {
+    const next = Number(this.value);
+
+    if (Math.abs(state.speed)>0.5 && next!==state.transmission) {
+        this.value = state.transmission;
+        message("Berhenti dahulu sebelum mengganti arah.");
+        return;
+    }
+
+    state.transmission = next;
+    updateDisplay();
+});
+
+/* REM DAN GAS */
+
+brake.addEventListener("input",function() {
+    state.brake = Number(this.value);
+    updateDisplay();
+});
+
+gas.addEventListener("input",function() {
+    state.gas = Number(this.value);
+    updateDisplay();
+});
+
+/* PEMANDANGAN */
+
+function createScenery() {
+    for (let i=0;i<18;i++) {
+        const tree = document.createElement("div");
+        tree.className = "tree";
+
+        tree.innerHTML =
+            '<div class="tree-trunk"></div><div class="tree-leaves"></div>';
+
+        $("trees").appendChild(tree);
+
+        trees.push({
+            element:tree,
+            x:Math.random()*110,
+            side:i%2===0 ? -1 : 1,
+            scale:0.5+Math.random()*0.8
+        });
+    }
+
+    for (let i=0;i<12;i++) {
+        const pole = document.createElement("div");
+        pole.className = "pole";
+
+        $("trees").appendChild(pole);
+
+        poles.push({
+            element:pole,
+            x:Math.random()*110,
+            side:i%2===0 ? -1 : 1
+        });
+    }
+
+    for (let i=0;i<20;i++) {
+        const sleeper = document.createElement("div");
+
+        sleeper.style.cssText =
+            "position:absolute;width:13%;height:5px;background:#493b30;left:43.5%;bottom:0;transform:translateX(-50%)";
+
+        $("sleepers").appendChild(sleeper);
+
+        sleepers.push({
+            element:sleeper,
+            progress:i/20
+        });
+    }
+}
+
+function sceneryUpdate(dt) {
+    const movement = Math.abs(state.speed)/120;
+
+    trees.forEach(tree => {
+        tree.x += movement*dt*85;
+
+        if (tree.x>110) {
+            tree.x=-10-Math.random()*20;
+            tree.scale=0.5+Math.random()*0.8;
+        }
+
+        const depth=Math.max(0.15,tree.x/110);
+        const y=100-tree.x*0.48;
+
+        tree.element.style.left =
+            (50+tree.side*tree.x*0.48)+"%";
+
+        tree.element.style.bottom=y+"%";
+
+        tree.element.style.transform =
+            "scale("+(tree.scale*depth)+")";
+    });
+
+    poles.forEach(pole => {
+        pole.x += movement*dt*85;
+
+        if (pole.x>110) pole.x=-15;
+
+        pole.element.style.left =
+            (50+pole.side*pole.x*0.48)+"%";
+
+        pole.element.style.bottom =
+            (100-pole.x*0.48)+"%";
+
+        pole.element.style.transform =
+            "scale("+(0.3+pole.x/110)+")";
+    });
+
+    sleepers.forEach(sleeper => {
+        sleeper.progress += movement*dt*0.15;
+
+        if (sleeper.progress>1) sleeper.progress=0;
+
+        const p=sleeper.progress;
+        const bottom=p*31;
+
+        sleeper.element.style.bottom=bottom+"%";
+        sleeper.element.style.width=(4+p*30)+"%";
+        sleeper.element.style.opacity=0.3+p*0.7;
+    });
+}
+
+/* PERJALANAN */
+
+function gameLoop(time) {
+    if (!lastTime) lastTime=time;
+
+    const dt=Math.min((time-lastTime)/1000,0.05);
+    lastTime=time;
+
+    if (!state.arrived) {
+        if (state.engine && state.gas>0 && state.brake<100) {
+            let force=state.gas*0.012;
+            let direction=state.transmission===0 ? -1 :
+                state.transmission===2 ? 1 : 0;
+
+            state.speed += force*direction*dt;
+        }
+
+        if (state.brake>0) {
+            const braking=state.brake*0.035*dt;
+
+            if (state.speed>0) {
+                state.speed=Math.max(0,state.speed-braking);
+            } else if (state.speed<0) {
+                state.speed=Math.min(0,state.speed+braking);
+            }
+        }
+
+        if (!state.engine || state.gas===0) {
+            if (state.speed>0) state.speed=Math.max(0,state.speed-0.015*dt);
+            if (state.speed<0) state.speed=Math.min(0,state.speed+0.015*dt);
+        }
+
+        state.speed=Math.max(-120,Math.min(120,state.speed));
+
+        if (state.speed>0) {
+            state.distance+=state.speed*dt/3.6;
+        }
+
+        if (state.distance>=state.maxDistance) {
+            state.distance=state.maxDistance;
+            state.speed=0;
+            state.arrived=true;
+            state.gas=0;
+            gas.value=0;
+            $("station").classList.add("show");
+            message("Kereta tiba di stasiun tujuan!");
+        }
+
+        sceneryUpdate(dt);
+        updateDisplay();
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+/* RESET */
+
+function resetGame() {
+    state.engine=false;
+    state.transmission=1;
+    state.brake=0;
+    state.gas=0;
+    state.speed=0;
+    state.distance=0;
+    state.arrived=false;
+
+    transmission.value=1;
+    brake.value=0;
+    gas.value=0;
+
+    stopSound();
+
+    $("station").classList.remove("show");
+
+    message("Perjalanan baru dimulai. Nyalakan mesin.");
+
+    updateDisplay();
+}
+
+$("resetButton").addEventListener("click",resetGame);
+$("stationContinue").addEventListener("click",resetGame);
+
+/* MULAI GAME */
+
+createScenery();
+updateDisplay();
+requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>
